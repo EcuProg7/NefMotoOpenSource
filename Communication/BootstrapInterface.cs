@@ -23,6 +23,10 @@ using System.ComponentModel;
 using System.Threading;
 using Shared;
 using FTD2XX_NET;
+using System.IO;
+using Communication.Properties;
+using System.Windows.Markup;
+using System;
 
 namespace Communication
 {
@@ -104,6 +108,7 @@ namespace Communication
             PreC165 = 0xB5, //Previous versions of the C165.
             C167 = 0xC5, //C167 derivatives.
             Other = 0xD5, //All devices equipped with identification registers.
+            MonRunning = 0xAA,
         }
 
         public byte DeviceID
@@ -145,6 +150,8 @@ namespace Communication
                 if (OpenFTDIDevice(SelectedDeviceInfo))
                 {
                     FTDI.FT_STATUS setupStatus = FTDI.FT_STATUS.FT_OK;
+                    setupStatus |= mFTDIDevice.SetDTR(false);       // switch VAG-K+Can Commander dog µc not in Reset
+                    setupStatus |= mFTDIDevice.SetRTS(false);       // switch VAG-K+Can Commander dog to KKL mode
                     setupStatus |= mFTDIDevice.SetDataCharacteristics(FTDI.FT_DATA_BITS.FT_BITS_8, FTDI.FT_STOP_BITS.FT_STOP_BITS_1, FTDI.FT_PARITY.FT_PARITY_NONE);
                     setupStatus |= mFTDIDevice.SetFlowControl(FTDI.FT_FLOW_CONTROL.FT_FLOW_NONE, 0, 0);
                     setupStatus |= mFTDIDevice.SetLatency(2);//2 ms is min, this is the max time before data must be sent from the device to the PC even if not a full block
@@ -186,10 +193,11 @@ namespace Communication
 
             CloseFTDIDevice();
 
-            ConnectionStatus = ConnectionStatusType.Disconnected;
+            //ConnectionStatus = ConnectionStatusType.Disconnected;
+            ConnectionStatus = ConnectionStatusType.CommunicationTerminated;
         }
 
-		private const uint NumConnectionAttemptsDefaultValue = 3;
+		private const uint NumConnectionAttemptsDefaultValue = 1;
 		[DefaultValue(NumConnectionAttemptsDefaultValue)]
         public uint NumConnectionAttempts
         {
@@ -290,7 +298,14 @@ namespace Communication
 
             if (deviceIDData != null)
             {
-                DisplayStatusMessage("Received device ID response for init zero byte.", StatusMessageType.USER);
+                deviceID = deviceIDData[0];
+                DisplayStatusMessage($"Received device ID response for init zero byte..: {deviceID:X}", StatusMessageType.USER);
+
+                if (DeviceIDTypes.MonRunning.Equals((DeviceIDTypes)deviceID))
+                {
+                    DisplayStatusMessage("Minimon is already Running, reconnected successful", StatusMessageType.USER);
+                    return true;
+                }
             }
             else
             {
@@ -298,7 +313,7 @@ namespace Communication
                 return false;
             }
 
-            deviceID = deviceIDData[0];
+            
 
             if (SendBytes(loaderProgram))
             {
@@ -317,6 +332,11 @@ namespace Communication
         {
             if (UploadBootstrapLoader(loaderProgram, out deviceID))
             {
+
+                if (DeviceIDTypes.MonRunning.Equals((DeviceIDTypes)deviceID))
+                {
+                    return true;
+                }
                 byte[] loaderResult;
                 if (ReceiveBytes(1, out loaderResult) && (loaderResult[0] == (byte)CommunicationConstants.I_LOADER_STARTED))
                 {
@@ -347,7 +367,7 @@ namespace Communication
                 return false;
             }
 
-            byte[] autoBaudPattern = { 0x55 };
+/*            byte[] autoBaudPattern = { 0x55 };
             if (SendBytes(autoBaudPattern))
             {
                 DisplayStatusMessage("Sent baud rate detection byte.", StatusMessageType.USER);
@@ -367,7 +387,7 @@ namespace Communication
             {
                 DisplayStatusMessage("Bootmode runtime upload failed. Failed to receive baud rate detection response message.", StatusMessageType.USER);
                 return false;
-            }
+            }*/
 
             byte[] programStatus;
             if (ReceiveBytes(1, out programStatus) && (programStatus[0] == (byte)CommunicationConstants.I_APPLICATION_STARTED))
@@ -386,16 +406,21 @@ namespace Communication
 
         bool StartMiniMon()
         {
-			//TODO: this should be a program resource
-            byte[] miniMonLoader = { 0xE6, 0x58, 0x01, 0x00, 0x9A, 0xB6, 0xFE, 0x70, 0xE6, 0xF0, 0x60, 0xFA, 0x7E, 0xB7, 0x9A, 0xB7, 0xFE, 0x70, 0xA4, 0x00, 0xB2, 0xFE, 0x86, 0xF0, 0xE7, 0xFB, 0x3D, 0xF8, 0xEA, 0x00, 0x60, 0xFA };
+            //TODO: this should be a program resource
+            byte[] bootstraploader = File.ReadAllBytes("Resources/BootstrapLoaderKline.bin");
+            //byte[] miniMonLoader = { 0xE6, 0x58, 0x01, 0x00, 0x9A, 0xB6, 0xFE, 0x70, 0xE6, 0xF0, 0x60, 0xFA, 0x7E, 0xB7, 0x9A, 0xB7, 0xFE, 0x70, 0xA4, 0x00, 0xB2, 0xFE, 0x86, 0xF0, 0xE7, 0xFB, 0x3D, 0xF8, 0xEA, 0x00, 0x60, 0xFA };
 
             byte deviceID;
-            if (!UploadMiniMonBootstrapLoader(miniMonLoader, out deviceID))
+            if (!UploadMiniMonBootstrapLoader(bootstraploader, out deviceID))
             {
                 return false;
             }
-            
-            byte[] miniMonProgram = {};
+            if (DeviceIDTypes.MonRunning.Equals((DeviceIDTypes)deviceID))
+            {
+                return true;
+            }
+
+            byte[] miniMonProgram = File.ReadAllBytes("Resources/minimonKline.bin");
 
             if (!UploadMiniMonProgram(miniMonProgram))
             {

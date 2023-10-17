@@ -302,7 +302,8 @@ namespace Communication
             byte[] messageData = null;           
 
             //Must always send baud rate byte unless using a standard session. ECU starting programming session doesn't check if it receives it or not before using it
-            Debug.Assert((sessionType != KWP2000DiagnosticSessionType.StandardSession) || (baudRate == (uint)KWP2000BaudRates.BAUD_DEFAULT) || (baudRate == (uint)KWP2000BaudRates.BAUD_UNSPECIFIED));
+            Debug.Assert(((sessionType != KWP2000DiagnosticSessionType.StandardSession) || (baudRate == (uint)KWP2000BaudRates.BAUD_DEFAULT) || (baudRate == (uint)KWP2000BaudRates.BAUD_UNSPECIFIED)) ||
+                            ((sessionType == KWP2000DiagnosticSessionType.StandardSession) && (baudRate == (uint)KWP2000BaudRates.BAUD_9600)));
 
             if (baudRate == (uint)KWP2000BaudRates.BAUD_UNSPECIFIED)
             {
