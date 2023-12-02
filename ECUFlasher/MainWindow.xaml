@@ -117,6 +117,9 @@ Contact by Email: tony@nefariousmotorsports.com
             <TabItem Header="KWP2000 Logging">
                 <ECUFlasher:DataLoggerControl/>
             </TabItem>
+            <TabItem Header="BootMode Flashing">
+                <ECUFlasher:FlashingControl_Bootmode/>
+            </TabItem>
             <TabItem>
                 <TabItem.Header>
                     <TextBlock>

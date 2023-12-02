@@ -222,6 +222,9 @@
     <Compile Include="ECUInfoControl.xaml.cs">
       <DependentUpon>ECUInfoControl.xaml</DependentUpon>
     </Compile>
+    <Compile Include="FlashingControl_Bootmode.xaml.cs">
+      <DependentUpon>FlashingControl_Bootmode.xaml</DependentUpon>
+    </Compile>
     <Compile Include="FlashingControl.xaml.cs">
       <DependentUpon>FlashingControl.xaml</DependentUpon>
     </Compile>
@@ -260,6 +263,10 @@
     <Page Include="ECUInfoControl.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="FlashingControl_Bootmode.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
     </Page>
     <Page Include="FlashingControl.xaml">
       <SubType>Designer</SubType>

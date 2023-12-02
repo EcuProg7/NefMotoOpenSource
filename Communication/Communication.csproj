@@ -175,13 +175,17 @@
   <ItemGroup>
     <Compile Include="BootstrapInterface.cs" />
     <Compile Include="CommunicationInterface.cs" />
+    <Compile Include="BootstrapActions.cs" />
     <Compile Include="KWP2000Actions.cs" />
+    <Compile Include="BootstrapConstants.cs" />
     <Compile Include="KWP2000Constants.cs" />
     <Compile Include="KWP2000DTC.cs" />
     <Compile Include="KWP2000ExtendedDataLogging.cs" />
     <Compile Include="KWP2000Identification.cs" />
     <Compile Include="KWP2000Interface.cs" />
+    <Compile Include="BootstrapMessage.cs" />
     <Compile Include="KWP2000Message.cs" />
+    <Compile Include="BootstrapOperations.cs" />
     <Compile Include="KWP2000Operations.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\Resources.Designer.cs">

@@ -32,74 +32,7 @@ namespace Communication
 {
     public class BootstrapInterface : CommunicationInterface
     {
-        private enum CommunicationConstants : byte
-        {
-            //--------------------- Initialisation Acknowledges --------------
 
-            I_LOADER_STARTED        =   0x001,  //Loader successfully launched
-            I_APPLICATION_LOADED	=	0x002,	//Application succ. loaded
-            I_APPLICATION_STARTED	=	0x003,	//Application succ. launched
-            I_AUTOBAUD_ACKNOWLEDGE  =   0x004,  //Autobaud detection acknowledge
-
-            //---------------------  Function Codes ----------------------------
-
-            C_WRITE_BLOCK		    =   0x084,	//Write memory block to target mem
-            C_READ_BLOCK		    =	0x085,	//Read memory block from target mem
-            C_EINIT			        =	0x031,	//Execute Einit Command, no params, no return values
-            C_SWRESET		        =	0x032,	//Execute Software Reset
-            C_GO			        =	0x041,  //Jump to user program
-            C_GETCHECKSUM		    =	0x033,  //get checksum of previous sent block
-            C_TEST_COMM		        =	0x093,	//Test communication
-            C_CALL_FUNCTION		    =	0x09F,	//Mon. extension interface: call driver
-            C_WRITE_WORD		    =	0x082,	//write word to memory/register
-            C_MON_EXT		        =	0x09F,	//call driver routine
-            C_ASC1_CON		        =	0x0CC,	//Connection over ASC1
-            C_READ_WORD		        =	0x0CD,	//Read Word from memory/register
-            C_WRITE_WORD_SEQENCE	=	0x0CE,	//Write Word Sequence
-            C_CALL_MEMTOOL_DRIVER	=	0x0CF,	//Call memtool driver routine
-            C_AUTOBAUD		        =	0x0D0,	//Call autobaud routine
-            C_SETPROTECTION  	    =	0x0D1,	//Call security function 
-
-            //---------------------  MiniMon Acknowledges --------------------
-
-            A_ACK1			        =	0x0AA,  //1st Acknowledge to function code
-            A_ACK2			        =	0x0EA,	//2nd Acknowledge (last byte)
-            A_ASC1_CON_INIT		    =	0x0CA,	//ASC1 Init OK
-            A_ASC1_CON_OK		    =	0x0D5,	//ASC1 Connection OK
-
-            //--------------------- Error Values -----------------------------
-
-            E_WRITE			        =	0x011,	//Write Error
-
-            //---------------------  Function Codes ----------------------------
-
-            FC_PROG					=	0x000,	//Program Flash
-            FC_ERASE				=	0x001,	//Erase Flash
-            FC_SETTIMING			=	0x003,	//Set Timing
-            FC_GETSTATE				=	0x006,	//Get State
-            FC_LOCK					=	0x010,	//Lock Flash bank
-            FC_UNLOCK				=	0x011,	//Unlock Flash bank
-            FC_PROTECT				=	0x020,	//Protect entire Flash
-            FC_UNPROTECT			=	0x021,	//Unprotect Flash
-            FC_BLANKCHECK			=	0x034,	//OTP/ Flash blankcheck
-            FC_GETID				=	0x035,	//Get Manufacturer ID/ Device ID
-
-            //--------------------- Function Error Values -----------------------------
-
-            FE_NOERROR				=	0x000,	//No error
-            FE_UNKNOWN_FC			=	0x001,	//Unknown function code
-            FE_PROG_NO_VPP			=	0x010,	//No VPP while programming
-            FE_PROG_FAILED			=	0x011,	//Programming failed
-            FE_PROG_VPP_NOT_CONST	=	0x012,	//VPP not constant while programming
-            FE_INVALID_BLOCKSIZE	=	0x01B,	//Invalid blocksize
-            FE_INVALID_DEST_ADDR	=   0x01C,	//Invalid destination address
-            FE_ERASFE_NO_VPP		=	0x030,	//No VPP while erasing
-            FE_ERASFE_FAILED		=	0x031,	//Erasing failed
-            FE_ERASFE_VPP_NOT_CONST	=	0x032,	//VPP not constant while erasing
-            FE_INVALID_SECTOR		=	0x033,	//Invalid sector number
-            FE_Sector_LOCKED		=	0x034,	//Sector locked
-            FE_FLASH_PROTECTED		=	0x035,	//Flash protected
-        }
 
         public enum DeviceIDTypes : byte
         {
@@ -108,7 +41,6 @@ namespace Communication
             PreC165 = 0xB5, //Previous versions of the C165.
             C167 = 0xC5, //C167 derivatives.
             Other = 0xD5, //All devices equipped with identification registers.
-            MonRunning = 0xAA,
         }
 
         public byte DeviceID
@@ -301,7 +233,7 @@ namespace Communication
                 deviceID = deviceIDData[0];
                 DisplayStatusMessage($"Received device ID response for init zero byte..: {deviceID:X}", StatusMessageType.USER);
 
-                if (DeviceIDTypes.MonRunning.Equals((DeviceIDTypes)deviceID))
+                if (BootstrapAcknowledge.acknowledgeFunctionCode.Equals((BootstrapAcknowledge)deviceID))
                 {
                     DisplayStatusMessage("Minimon is already Running, reconnected successful", StatusMessageType.USER);
                     return true;
@@ -333,12 +265,12 @@ namespace Communication
             if (UploadBootstrapLoader(loaderProgram, out deviceID))
             {
 
-                if (DeviceIDTypes.MonRunning.Equals((DeviceIDTypes)deviceID))
+                if (BootstrapAcknowledge.acknowledgeFunctionCode.Equals((BootstrapAcknowledge)deviceID))
                 {
                     return true;
                 }
                 byte[] loaderResult;
-                if (ReceiveBytes(1, out loaderResult) && (loaderResult[0] == (byte)CommunicationConstants.I_LOADER_STARTED))
+                if (ReceiveBytes(1, out loaderResult) && (loaderResult[0] == (byte)BootstrapInitConstants.I_LOADER_STARTED))
                 {
                     DisplayStatusMessage("Received bootstrap loader started status message.", StatusMessageType.USER);
 
@@ -390,7 +322,7 @@ namespace Communication
             }*/
 
             byte[] programStatus;
-            if (ReceiveBytes(1, out programStatus) && (programStatus[0] == (byte)CommunicationConstants.I_APPLICATION_STARTED))
+            if (ReceiveBytes(1, out programStatus) && (programStatus[0] == (byte)BootstrapInitConstants.I_APPLICATION_STARTED))
             {
                 DisplayStatusMessage("Received bootmode runtime started status message.", StatusMessageType.USER);
             }
@@ -415,7 +347,7 @@ namespace Communication
             {
                 return false;
             }
-            if (DeviceIDTypes.MonRunning.Equals((DeviceIDTypes)deviceID))
+            if (BootstrapAcknowledge.acknowledgeFunctionCode.Equals((BootstrapAcknowledge)deviceID))
             {
                 return true;
             }
@@ -439,7 +371,7 @@ namespace Communication
             }
 
             byte[] functionCodeAck;
-            if (!ReceiveBytes(1, out functionCodeAck) || (functionCodeAck[0] != (byte)CommunicationConstants.A_ACK1))
+            if (!ReceiveBytes(1, out functionCodeAck) || (functionCodeAck[0] != (byte)BootstrapAcknowledge.acknowledgeFunctionCode))
             {
                 return false;
             }
@@ -449,7 +381,7 @@ namespace Communication
 
         bool MiniMon_GetFunctionRequestAck(out byte result)
         {
-            result = (byte)CommunicationConstants.A_ACK2;
+            result = (byte)BootstrapAcknowledge.acknowledgeParameter;
 
             byte[] functionFinishedAck;
             if(!ReceiveBytes(1, out functionFinishedAck))
@@ -465,12 +397,12 @@ namespace Communication
         bool MiniMon_WasFunctionRequestSuccessful()
         {
             byte result;
-            return MiniMon_GetFunctionRequestAck(out result) && (result == (byte)CommunicationConstants.A_ACK2);
+            return MiniMon_GetFunctionRequestAck(out result) && (result == (byte)BootstrapAcknowledge.acknowledgeParameter);
         }
 
         bool MiniMon_EndInitialization()
         {
-            if (!MiniMon_RequestFunction((byte)CommunicationConstants.C_EINIT))
+            if (!MiniMon_RequestFunction((byte)BootstrapFunctionCode.eInit))
             {
                 return false;
             }
@@ -485,7 +417,7 @@ namespace Communication
 
         bool MiniMon_TestCommunication()
         {
-            if (!MiniMon_RequestFunction((byte)CommunicationConstants.C_TEST_COMM))
+            if (!MiniMon_RequestFunction((byte)BootstrapFunctionCode.testCommunication))
             {
                 return false;
             }
@@ -500,7 +432,7 @@ namespace Communication
 
         bool MiniMon_SoftwareReset()
         {
-            if (!MiniMon_RequestFunction((byte)CommunicationConstants.C_SWRESET))
+            if (!MiniMon_RequestFunction((byte)BootstrapFunctionCode.swReset))
             {
                 return false;
             }
@@ -517,7 +449,7 @@ namespace Communication
         {
             checksum = 0;
 
-            if (!MiniMon_RequestFunction((byte)CommunicationConstants.C_GETCHECKSUM))
+            if (!MiniMon_RequestFunction((byte)BootstrapFunctionCode.getChekcsum))
             {
                 return false;
             }
@@ -543,9 +475,9 @@ namespace Communication
             Debug.Assert((0xFF000000 & address) == 0);
             Debug.Assert((0xFFFF0000 & data.Length) == 0);
 
-            functionResult = (byte)CommunicationConstants.A_ACK2;
+            functionResult = (byte)BootstrapAcknowledge.acknowledgeParameter;
 
-            if (!MiniMon_RequestFunction((byte)CommunicationConstants.C_WRITE_BLOCK))
+            if (!MiniMon_RequestFunction((byte)BootstrapFunctionCode.writeBlockBytes))
             {
                 return false;
             }
@@ -574,7 +506,7 @@ namespace Communication
                 return false;
             }
 
-            if (!MiniMon_GetFunctionRequestAck(out functionResult) || (functionResult != (byte)CommunicationConstants.A_ACK2))
+            if (!MiniMon_GetFunctionRequestAck(out functionResult) || (functionResult != (byte)BootstrapAcknowledge.acknowledgeParameter))
             {
                 return false;
             }
@@ -589,7 +521,7 @@ namespace Communication
 
             data = null;
 
-            if (!MiniMon_RequestFunction((byte)CommunicationConstants.C_READ_BLOCK))
+            if (!MiniMon_RequestFunction((byte)BootstrapFunctionCode.readBlockBytes))
             {
                 return false;
             }
@@ -630,7 +562,7 @@ namespace Communication
         {
             Debug.Assert((0xFF000000 & address) == 0);
 
-            if (!MiniMon_RequestFunction((byte)CommunicationConstants.C_GO))
+            if (!MiniMon_RequestFunction((byte)BootstrapFunctionCode.gotoSubroutine))
             {
                 return false;
             }
@@ -658,7 +590,7 @@ namespace Communication
             Debug.Assert((0xFF000000 & address) == 0);
             Debug.Assert((0xFFFF0000 & word) == 0);
 
-            if (!MiniMon_RequestFunction((byte)CommunicationConstants.C_WRITE_WORD))
+            if (!MiniMon_RequestFunction((byte)BootstrapFunctionCode.writeWord))
             {
                 return false;
             }
@@ -695,7 +627,7 @@ namespace Communication
             Debug.Assert((0xFF000000 & address) == 0);
             word = 0;
 
-            if (!MiniMon_RequestFunction((byte)CommunicationConstants.C_READ_WORD))
+            if (!MiniMon_RequestFunction((byte)BootstrapFunctionCode.readWord))
             {
                 return false;
             }
@@ -734,7 +666,7 @@ namespace Communication
             Debug.Assert(registerParams.Length == 16);
             registerResults = null;
 
-            if (!MiniMon_RequestFunction((byte)CommunicationConstants.C_CALL_FUNCTION))
+            if (!MiniMon_RequestFunction((byte)BootstrapFunctionCode.callSubroutine))
             {
                 return false;
             }
@@ -772,7 +704,7 @@ namespace Communication
             Debug.Assert((0xFF000000 & sequenceAddress) == 0);
             Debug.Assert((0xFFFF0000 & numSequenceEntries) == 0);
 
-            if (!MiniMon_RequestFunction((byte)CommunicationConstants.C_WRITE_WORD_SEQENCE))
+            if (!MiniMon_RequestFunction((byte)BootstrapFunctionCode.writeWordSequence))
             {
                 return false;
             }

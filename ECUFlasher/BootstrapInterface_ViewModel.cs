@@ -88,7 +88,7 @@ namespace ECUFlasher
                 if (_ConnectCommand == null)
                 {
                     _ConnectCommand = new ReactiveCommand(OnBootstrapConnect);
-                    _ConnectCommand.Name = "Connect Boot Mode";
+                    _ConnectCommand.Name = "Connect/Reconnect Boot Mode";
                     _ConnectCommand.Description = "Connect using boot mode";
                     _ConnectCommand.AddWatchedProperty(App, "SelectedDeviceInfo");
                     _ConnectCommand.AddWatchedProperty(CommInterface, "ConnectionStatus");
